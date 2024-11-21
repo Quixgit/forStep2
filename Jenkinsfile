@@ -26,10 +26,7 @@ pipeline {
                 }
             }
         }
-        stage('Push to Docker Hub') {
-            when {
-                branch 'main'  // push только если ветка main
-            }
+        stage('Push to Docker Hub') 
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
