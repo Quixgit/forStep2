@@ -13,7 +13,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Строим Docker образ с тегом latest и хэшом коммита
+                    // Строим Docker образ с тегом latest
                     sh 'docker build -t $DOCKER_IMAGE:latest .'
                 }
             }
@@ -30,14 +30,14 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        // Логинимся в Docker Hub
+                        // Получаем хэш коммита
                         def commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                        
-                        // Логин и пуш образа с тегом latest
+
+                        // Логинимся в Docker Hub
                         sh """
                             echo \$DOCKER_PASSWORD | docker login --username \$DOCKER_USERNAME --password-stdin
-                            docker tag $DOCKER_IMAGE:latest ${DOCKER_USERNAME}/$DOCKER_IMAGE:${commitHash}
-                            docker push ${DOCKER_USERNAME}/$DOCKER_IMAGE:${commitHash}
+                            docker tag $DOCKER_IMAGE:latest \$DOCKER_USERNAME/$DOCKER_IMAGE:$commitHash
+                            docker push \$DOCKER_USERNAME/$DOCKER_IMAGE:$commitHash
                         """
                     }
                 }
