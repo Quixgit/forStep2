@@ -1,59 +1,67 @@
 pipeline {
-    agent any
+    agent none  // Пайплайн не будет выполняться на главном сервере Jenkins, только на worker-ах
+    
     environment {
-        DOCKER_IMAGE = 'app_quix'  // Название Docker образа
-        DOCKER_USERNAME = 'quixq'  // Ваш логин на Docker Hub (не email)
-        DOCKER_CREDENTIALS = credentials('dockerhub-creds')  // Получаем Docker Hub креды
+        DOCKER_USERNAME = 'quixq'  // Укажите свой Docker Hub логин
+        DOCKER_PASSWORD = credentials('dockerhub-creds')  // Идентификатор кредов для Docker Hub в Jenkins
+        DOCKER_IMAGE = 'app_quix'  // Название вашего Docker образа
     }
+
     stages {
-        stage('Checkout SCM') {
+        stage('Checkout') {
+            agent any  // Этот этап будет выполнен на любом доступном агенте Jenkins
             steps {
-                checkout scm  // Проверка исходного кода из репозитория
+                checkout scm  // Получаем исходный код из репозитория GitHub
             }
         }
+
         stage('Build Docker Image') {
+            agent { label 'worker' }  // Указываем, что этот этап должен выполняться на worker-узле
             steps {
                 script {
                     // Строим Docker образ с тегом latest
-                    sh 'docker build -t $DOCKER_USERNAME/$DOCKER_IMAGE:latest .'  // Используем правильный формат для имени образа
+                    sh 'docker build -t $DOCKER_USERNAME/$DOCKER_IMAGE:latest .'
                 }
             }
         }
-        stage('Run Tests') {
-            steps {
-                script {
-                    // Запуск тестов в контейнере
-                    sh 'docker run --rm $DOCKER_USERNAME/$DOCKER_IMAGE:latest npm run test'  // Тестирование образа
-                }
-            }
-        }
-        stage('Push to Docker Hub') {
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        // Получаем хэш коммита
-                        def commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
 
-                        // Логинимся в Docker Hub
-                        sh """
-                            echo \$DOCKER_PASSWORD | docker login --username \$DOCKER_USERNAME --password-stdin
-                            docker tag $DOCKER_USERNAME/$DOCKER_IMAGE:latest \$DOCKER_USERNAME/$DOCKER_IMAGE:\$commitHash
-                            docker push \$DOCKER_USERNAME/$DOCKER_IMAGE:\$commitHash
-                        """
+        stage('Run Tests') {
+            agent { label 'jenks2' }  // Тестирование также будет выполнено на worker-узле
+            steps {
+                script {
+                    // Запускаем контейнер и выполняем тесты
+                    def result = sh(script: 'docker run --rm $DOCKER_USERNAME/$DOCKER_IMAGE:latest npm run test', returnStatus: true)
+                    // Если тесты не прошли (код возврата не 0), завершить пайплайн с ошибкой
+                    if (result != 0) {
+                        error "Tests failed"
                     }
                 }
             }
         }
-    }
-    post {
-        always {
-            echo 'Pipeline finished'  // Завершение пайплайна
+
+        stage('Push to Docker Hub') {
+            agent { label 'jenks2' }  // Push образа в Docker Hub выполняется также на worker-узле
+            steps {
+                script {
+                    // Логинимся в Docker Hub
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh 'echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin'
+                    }
+                    
+                    // Тегируем и пушим образ в Docker Hub
+                    sh 'docker tag $DOCKER_USERNAME/$DOCKER_IMAGE:latest $DOCKER_USERNAME/$DOCKER_IMAGE:$BUILD_NUMBER'
+                    sh 'docker push $DOCKER_USERNAME/$DOCKER_IMAGE:$BUILD_NUMBER'
+                }
+            }
         }
+    }
+
+    post {
         success {
-            echo 'Tests passed!'  // Сообщение при успешном выполнении тестов
+            echo 'Docker image pushed to Docker Hub successfully!'
         }
         failure {
-            echo 'Tests failed'  // Сообщение при неудаче тестов
+            echo 'Tests failed'
         }
     }
 }
