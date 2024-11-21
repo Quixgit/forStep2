@@ -3,6 +3,7 @@ pipeline {
     environment {
         DOCKER_IMAGE = 'app_quix'
         DOCKER_CREDENTIALS = credentials('dockerhub-creds')  // Получаем Docker Hub креды
+        DOCKER_USERNAME = 'quixq'  // Ваше имя пользователя на Docker Hub
     }
     stages {
         stage('Checkout SCM') {
