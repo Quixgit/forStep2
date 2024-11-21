@@ -1,8 +1,29 @@
 pipeline:
   agent:
     label: 'jenks2'
+  environment:
+    DOCKER_CREDENTIALS: '{{dockerhub-creds}}'
   stages:
-    - stage: 'Hello World'
+    - stage: 'Checkout Code'
       steps:
-        - script: >
-            echo 'Hello, World!'
+        - script: |
+            git checkout $BRANCH_NAME
+    - stage: 'Build Docker Image'
+      steps:
+        - script: |
+            docker build -t app_quix .
+    - stage: 'Run Tests'
+      steps:
+        - script: |
+            docker run --rm app_quix npm test || exit 1
+    - stage: 'Push to Docker Hub'
+      when:
+        expression: "currentBuild.result == null || currentBuild.result == 'SUCCESS'"
+      steps:
+        - script: |
+            echo ${{DOCKER_CREDENTIALS_PSW}} | docker login -u ${{DOCKER_CREDENTIALS_USR}} --password-stdin
+            docker tag app_quix quixq/quix/test-node-app:latest
+            docker push quixq/quix/test-node-app:latest
+  post:
+    failure:
+      - echo: 'Tests failed'
