@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        DOCKER_IMAGE = 'quixq/forstep' // Указываем репозиторий и образ
+        DOCKER_IMAGE = 'quixq/forstep' // Репозиторий и образ
         DOCKER_CREDENTIALS = credentials('dockerhub-creds') // Получаем Docker Hub креды
     }
     stages {
@@ -14,15 +14,17 @@ pipeline {
             steps {
                 script {
                     // Строим Docker образ с тегом на основе хеша коммита
-                    sh 'docker build -t $DOCKER_IMAGE:${GIT_COMMIT} .'
+                    def commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    sh "docker build -t ${DOCKER_IMAGE}:${commitHash} ."
                 }
             }
         }
         stage('Run Tests') {
             steps {
                 script {
+                    def commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                     // Запуск тестов в контейнере
-                    sh 'docker run --rm $DOCKER_IMAGE:${GIT_COMMIT} npm run test'
+                    sh "docker run --rm ${DOCKER_IMAGE}:${commitHash} npm run test"
                 }
             }
         }
@@ -33,7 +35,7 @@ pipeline {
                         // Логинимся в Docker Hub
                         sh """
                             echo \$DOCKER_PASSWORD | docker login --username \$DOCKER_USERNAME --password-stdin
-                            docker push \$DOCKER_IMAGE:${GIT_COMMIT} // Пушим с тегом на основе коммита
+                            docker push ${DOCKER_IMAGE}:${commitHash}
                         """
                     }
                 }
