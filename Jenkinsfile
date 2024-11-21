@@ -2,6 +2,9 @@ pipeline {
     agent {
         label 'jenks2'  // Указывает на агент Jenkins с меткой 'jenks2'
     }
+    parameters {
+        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Branch to build')  // Параметр для ветки
+    }
     environment {
         DOCKER_CREDENTIALS = credentials('dockerhub-creds')  // Использует Jenkins Credentials для Docker
     }
@@ -9,11 +12,8 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 script {
-                    // Убедимся, что BRANCH_NAME передается правильно и выполняем git checkout
-                    if (!env.BRANCH_NAME) {
-                        error 'BRANCH_NAME is not set!'
-                    }
-                    sh "git checkout ${BRANCH_NAME}"  // Клонирует указанный бранч из репозитория
+                    // Используем параметр BRANCH_NAME для клонирования нужной ветки
+                    sh "git checkout ${params.BRANCH_NAME}"  // Клонирует указанный бранч из репозитория
                 }
             }
         }
