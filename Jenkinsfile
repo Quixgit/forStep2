@@ -37,8 +37,8 @@ pipeline {
                         // Логинимся в Docker Hub
                         sh """
                             echo \$DOCKER_PASSWORD | docker login --username \$DOCKER_USERNAME --password-stdin
-                            docker tag $DOCKER_USERNAME/$DOCKER_IMAGE:latest $DOCKER_USERNAME/forstep:latest
-                            docker push $DOCKER_USERNAME/forstep:latest
+                            docker tag $DOCKER_USERNAME/$DOCKER_IMAGE:latest \$DOCKER_USERNAME/$DOCKER_IMAGE:\$commitHash
+                            docker push \$DOCKER_USERNAME/$DOCKER_IMAGE:\$commitHash
                         """
                     }
                 }
