@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        DOCKER_IMAGE = 'app_quix'
+        DOCKER_IMAGE = 'app_quix:latest'
         DOCKER_CREDENTIALS = credentials('dockerhub-creds')  // Получаем Docker Hub креды
     }
     stages {
