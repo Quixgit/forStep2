@@ -11,6 +11,6 @@ COPY . .
 # Expose the port the app runs on
 EXPOSE 3000
 
-ENTRYPOINT ["npm"]
+#ENTRYPOINT ["npm"]
 # Define the command to run the app
-CMD ["start"]
+CMD ["npm", "start"]
