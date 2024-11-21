@@ -27,21 +27,19 @@ pipeline {
             }
         }
         stage('Push to Docker Hub') {
-            when {
-                branch 'main'  // push только если ветка main
-            }
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        // Логинимся в Docker Hub
-                        sh """
-                            docker login --username \$DOCKER_USERNAME --password \$DOCKER_PASSWORD
-                            docker push \$DOCKER_IMAGE
-                        """
-                    }
-                }
+    steps {
+        script {
+            withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                // Логинимся в Docker Hub
+                def commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                sh """
+                    echo \$DOCKER_PASSWORD | docker login --username \$DOCKER_USERNAME --password-stdin
+                    docker push ${DOCKER_IMAGE}:${commitHash}
+                """
             }
         }
+    }
+}
     }
     post {
         always {
