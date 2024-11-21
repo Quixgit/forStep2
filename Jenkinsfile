@@ -1,21 +1,21 @@
 pipeline {
     agent any
     environment {
-        DOCKER_IMAGE = 'app_quix'
-        DOCKER_CREDENTIALS = credentials('dockerhub-creds')  // Получаем Docker Hub креды
+        DOCKER_IMAGE = 'app_quix'  // Название вашего Docker образа
         DOCKER_USERNAME = 'quixq'  // Ваше имя пользователя на Docker Hub
+        DOCKER_CREDENTIALS = credentials('dockerhub-creds')  // Получаем Docker Hub креды
     }
     stages {
         stage('Checkout SCM') {
             steps {
-                checkout scm
+                checkout scm  // Проверка исходного кода из репозитория
             }
         }
         stage('Build Docker Image') {
             steps {
                 script {
                     // Строим Docker образ с тегом latest
-                    sh 'docker build -t $DOCKER_IMAGE:latest .'
+                    sh 'docker build -t $DOCKER_USERNAME/$DOCKER_IMAGE:latest .'  // Указан правильный формат имени образа
                 }
             }
         }
@@ -23,7 +23,7 @@ pipeline {
             steps {
                 script {
                     // Запуск тестов в контейнере
-                    sh 'docker run --rm $DOCKER_IMAGE:latest npm run test'
+                    sh 'docker run --rm $DOCKER_USERNAME/$DOCKER_IMAGE:latest npm run test'  // Тестирование образа
                 }
             }
         }
@@ -37,7 +37,7 @@ pipeline {
                         // Логинимся в Docker Hub
                         sh """
                             echo \$DOCKER_PASSWORD | docker login --username \$DOCKER_USERNAME --password-stdin
-                            docker tag $DOCKER_IMAGE:latest \$DOCKER_USERNAME/$DOCKER_IMAGE:\$commitHash
+                            docker tag $DOCKER_USERNAME/$DOCKER_IMAGE:latest \$DOCKER_USERNAME/$DOCKER_IMAGE:\$commitHash
                             docker push \$DOCKER_USERNAME/$DOCKER_IMAGE:\$commitHash
                         """
                     }
@@ -47,13 +47,13 @@ pipeline {
     }
     post {
         always {
-            echo 'Pipeline finished'
+            echo 'Pipeline finished'  // Завершение пайплайна
         }
         success {
-            echo 'Tests passed!'
+            echo 'Tests passed!'  // Сообщение при успешном выполнении тестов
         }
         failure {
-            echo 'Tests failed'
+            echo 'Tests failed'  // Сообщение при неудаче тестов
         }
     }
 }
