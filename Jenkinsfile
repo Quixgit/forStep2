@@ -1,8 +1,8 @@
 pipeline {
     agent any
     environment {
-        DOCKER_IMAGE = 'quixq/forstep' // Репозиторий и образ
-        DOCKER_CREDENTIALS = credentials('dockerhub-creds') // Получаем Docker Hub креды
+        DOCKER_IMAGE = 'app_quix'
+        DOCKER_CREDENTIALS = credentials('dockerhub-creds')  // Получаем Docker Hub креды
     }
     stages {
         stage('Checkout SCM') {
@@ -13,29 +13,30 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Строим Docker образ с тегом на основе хеша коммита
-                    def commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                    sh "docker build -t ${DOCKER_IMAGE}:${commitHash} ."
+                    // Строим Docker образ
+                    sh 'docker build -t $DOCKER_IMAGE .'
                 }
             }
         }
         stage('Run Tests') {
             steps {
                 script {
-                    def commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                     // Запуск тестов в контейнере
-                    sh "docker run --rm ${DOCKER_IMAGE}:${commitHash} npm run test"
+                    sh 'docker run --rm $DOCKER_IMAGE npm run test'
                 }
             }
         }
         stage('Push to Docker Hub') {
+            when {
+                branch 'main'  // push только если ветка main
+            }
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         // Логинимся в Docker Hub
                         sh """
-                            echo \$DOCKER_PASSWORD | docker login --username \$DOCKER_USERNAME --password-stdin
-                            docker push ${DOCKER_IMAGE}:${commitHash}
+                            docker login --username \$DOCKER_USERNAME --password \$DOCKER_PASSWORD
+                            docker push \$DOCKER_IMAGE
                         """
                     }
                 }
