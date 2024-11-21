@@ -1,0 +1,8 @@
+pipeline:
+  agent:
+    label: 'jenks2'
+  stages:
+    - stage: 'Hello World'
+      steps:
+        - script: >
+            echo 'Hello, World!'
