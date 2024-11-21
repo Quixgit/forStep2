@@ -1,8 +1,8 @@
 pipeline {
     agent any
     environment {
-        DOCKER_IMAGE = 'app_quix'
-        DOCKER_CREDENTIALS = credentials('dockerhub-creds')  // Получаем Docker Hub креды
+        DOCKER_IMAGE = 'quixq/forstep' // Указываем репозиторий и образ
+        DOCKER_CREDENTIALS = credentials('dockerhub-creds') // Получаем Docker Hub креды
     }
     stages {
         stage('Checkout SCM') {
@@ -13,8 +13,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Строим Docker образ
-                    sh 'docker build -t $DOCKER_IMAGE .'
+                    // Строим Docker образ с тегом на основе хеша коммита
+                    sh 'docker build -t $DOCKER_IMAGE:${GIT_COMMIT} .'
                 }
             }
         }
@@ -22,7 +22,7 @@ pipeline {
             steps {
                 script {
                     // Запуск тестов в контейнере
-                    sh 'docker run --rm $DOCKER_IMAGE npm run test'
+                    sh 'docker run --rm $DOCKER_IMAGE:${GIT_COMMIT} npm run test'
                 }
             }
         }
@@ -32,8 +32,8 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         // Логинимся в Docker Hub
                         sh """
-                            docker login --username \$DOCKER_USERNAME --password \$DOCKER_PASSWORD
-                            docker push \$DOCKER_IMAGE
+                            echo \$DOCKER_PASSWORD | docker login --username \$DOCKER_USERNAME --password-stdin
+                            docker push \$DOCKER_IMAGE:${GIT_COMMIT} // Пушим с тегом на основе коммита
                         """
                     }
                 }
