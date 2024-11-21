@@ -1,7 +1,8 @@
 pipeline {
     agent any
     environment {
-        DOCKER_CREDENTIALS = credentials('dockerhub-creds')
+        DOCKER_IMAGE = 'app_quix'
+        DOCKER_CREDENTIALS = credentials('dockerhub-creds')  // Получаем Docker Hub креды
     }
     stages {
         stage('Checkout SCM') {
@@ -12,25 +13,31 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh 'docker build -t app_quix .'
+                    sh 'docker build -t $DOCKER_IMAGE .'
                 }
             }
         }
         stage('Run Tests') {
             steps {
                 script {
-                    // Здесь явно указываем команду для тестирования
-                    sh 'docker run --rm app_quix npm run test'
+                    // Запуск тестов в контейнере
+                    sh 'docker run --rm $DOCKER_IMAGE npm run test'
                 }
             }
         }
         stage('Push to Docker Hub') {
             when {
-                branch 'main'
+                branch 'main'  // push только если ветка main
             }
             steps {
                 script {
-                    sh 'docker push app_quix'
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        // Логинимся в Docker Hub
+                        sh """
+                            echo \$DOCKER_PASSWORD | docker login --username \$DOCKER_USERNAME --password-stdin
+                            docker push \$DOCKER_IMAGE
+                        """
+                    }
                 }
             }
         }
