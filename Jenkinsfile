@@ -1,8 +1,8 @@
 pipeline {
     agent any
     environment {
-        DOCKER_IMAGE = 'app_quix'  // Название вашего Docker образа
-        DOCKER_USERNAME = 'quixq'  // Ваше имя пользователя на Docker Hub
+        DOCKER_IMAGE = 'app_quix'  // Название Docker образа
+        DOCKER_USERNAME = 'quixq'  // Ваш логин на Docker Hub (не email)
         DOCKER_CREDENTIALS = credentials('dockerhub-creds')  // Получаем Docker Hub креды
     }
     stages {
@@ -15,7 +15,7 @@ pipeline {
             steps {
                 script {
                     // Строим Docker образ с тегом latest
-                    sh 'docker build -t $DOCKER_USERNAME/$DOCKER_IMAGE:latest .'  // Указан правильный формат имени образа
+                    sh 'docker build -t $DOCKER_USERNAME/$DOCKER_IMAGE:latest .'  // Используем правильный формат для имени образа
                 }
             }
         }
