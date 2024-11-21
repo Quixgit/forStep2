@@ -13,6 +13,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
+                    // Строим Docker образ
                     sh 'docker build -t $DOCKER_IMAGE .'
                 }
             }
@@ -34,7 +35,7 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         // Логинимся в Docker Hub
                         sh """
-                            echo \$DOCKER_PASSWORD | docker login --username \$DOCKER_USERNAME --password-stdin
+                            docker login --username \$DOCKER_USERNAME --password \$DOCKER_PASSWORD
                             docker push \$DOCKER_IMAGE
                         """
                     }
