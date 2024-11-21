@@ -16,7 +16,7 @@ pipeline {
         }
 
         stage('Build Docker Image') {
-            agent { label 'worker' }  // Указываем, что этот этап должен выполняться на worker-узле
+            agent { label 'jenks2' }  // Указываем, что этот этап должен выполняться на worker-узле
             steps {
                 script {
                     // Строим Docker образ с тегом latest
